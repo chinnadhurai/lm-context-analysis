@@ -36,8 +36,8 @@ import numpy as np
 
 def repackage_hidden(h):
     """Wraps hidden states in new Variables, to detach them from their history."""
-    if type(h) == Variable:
-        return Variable(h.data)
+    if type(h) == torch.Tensor:
+        return Variable(h.detach())
     else:
         return tuple(repackage_hidden(v) for v in h)
 

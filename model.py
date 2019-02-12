@@ -37,6 +37,7 @@ from torch.autograd import Variable
 from embed_regularize import embedded_dropout
 from locked_dropout import LockedDropout
 from weight_drop import WeightDrop
+from NRU import NRU
 
 class RNNModel(nn.Module):
     """Container module with an encoder, a recurrent module, and a decoder."""
@@ -48,7 +49,9 @@ class RNNModel(nn.Module):
         self.hdrop = nn.Dropout(dropouth)
         self.drop = nn.Dropout(dropout)
         self.encoder = nn.Embedding(ntoken, ninp)
-        assert rnn_type in ['LSTM', 'QRNN', 'GRU'], 'RNN type is not supported'
+        assert rnn_type in ['LSTM', 'QRNN', 'GRU', 'NRU'], 'RNN type is not supported'
+        if rnn_type == 'NRU':
+            self.rnns = [NRU(ninp if l == 0 else nhid, nhid if l != nlayers - 1 else ninp) for l in range(nlayers)]
         if rnn_type == 'LSTM':
             self.rnns = [torch.nn.LSTM(ninp if l == 0 else nhid, nhid if l != nlayers - 1 else (ninp if tie_weights else nhid), 1, dropout=0) for l in range(nlayers)]
             if wdrop:
@@ -109,6 +112,7 @@ class RNNModel(nn.Module):
         #raw_output, hidden = self.rnn(emb, hidden)
         raw_outputs = []
         outputs = []
+
         for l, rnn in enumerate(self.rnns):
             current_input = raw_output
             raw_output, new_h = rnn(raw_output, hidden[l])
@@ -138,3 +142,5 @@ class RNNModel(nn.Module):
         elif self.rnn_type == 'QRNN' or self.rnn_type == 'GRU':
             return [Variable(weight.new(1, bsz, self.nhid if l != self.nlayers - 1 else (self.ninp if self.tie_weights else self.nhid)).zero_())
                     for l in range(self.nlayers)]
+        elif self.rnn_type == 'NRU':
+            return [rnn.reset_hidden(bsz) for rnn in self.rnns]

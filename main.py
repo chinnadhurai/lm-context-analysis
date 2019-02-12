@@ -46,8 +46,8 @@ from utils import batchify, get_batch, repackage_hidden
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn/',
                     help='location of the data corpus')
-parser.add_argument('--model', type=str, default='LSTM',
-                    help='type of recurrent net (LSTM, QRNN, GRU)')
+parser.add_argument('--model', type=str, default='NRU',
+                    help='type of recurrent net (LSTM, QRNN, GRU, NRU)')
 parser.add_argument('--emsize', type=int, default=400,
                     help='size of word embeddings')
 parser.add_argument('--nhid', type=int, default=1150,
@@ -103,6 +103,13 @@ if torch.cuda.is_available():
         print("WARNING: You have a CUDA device, so you should probably run with --cuda")
     else:
         torch.cuda.manual_seed(args.seed)
+
+def safe_exp(x):
+    try:
+        e = math.exp(x)
+        return e
+    except:
+        return 0
 
 ###############################################################################
 # Load data
@@ -242,7 +249,7 @@ try:
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
                     'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
-                                               val_loss, math.exp(val_loss)))
+                                               val_loss, safe_exp(val_loss)))
             print('-' * 89)
 
             if val_loss < stored_loss:
